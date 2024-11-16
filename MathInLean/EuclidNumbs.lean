@@ -7,25 +7,25 @@ open List
 
 -- A function that returns a list natural numbers between 1
 -- and the input, inclusive.
-def LNat_x (x : ℕ) : (List ℕ) :=
+def LNat (x : ℕ) : (List ℕ) :=
   if x = 0 then
     []
   else if x = 1 then
     [1]
   else
-    List.append [x] (LNat_x (x-1))
+    List.append [x] (LNat (x-1))
 
-#eval LNat_x 3
+#eval LNat 3
 
 def mult (a b : ℕ) := a * b
 
 #eval mult 2 3
 
-#eval List.foldl mult 1 (LNat_x 4)
+#eval List.foldl mult 1 (LNat 4)
 
 
 -- Define the euclid numbers function, returned as a list
-def LEuc_x (x : ℕ) : (List ℕ) :=
+def Leuc (x : ℕ) : (List ℕ) :=
   if x = 0 then
     []
   else if x = 1 then
@@ -33,24 +33,25 @@ def LEuc_x (x : ℕ) : (List ℕ) :=
   else
     -- compute the product of all previous euclid numbers and add 1
     -- then append it to the list
-    List.append (LEuc_x (x-1)) [List.foldl mult 1 (LEuc_x (x-1)) + 1]
+    List.append (Leuc (x-1)) [List.foldl mult 1 (Leuc (x-1)) + 1]
 
-#eval LEuc_x 5
+#eval Leuc 5
+#check Leuc 5 = [2, 3, 7, 43, 1807]
 
-#eval (LEuc_x 4)[3]!
-#eval List.foldl mult 1 (LEuc_x 3)
+#check (Leuc 4)[3]! = 43
+#check List.foldl mult 1 (Leuc 3) = 42
 
-#eval (LEuc_x 5)[0]!
+#check (Leuc 5)[0]! = 2
 
-#eval (LEuc_x 5)[4]!
+#check (Leuc 5)[4]! = 1807
 
 
-theorem Euc_prod (x : ℕ) (h: x ≥ 1) : (LEuc_x x)[x-1]! = List.foldl mult 1 (LEuc_x (x-1)) +1 := by
+theorem Euc_prod (x : ℕ) (h: x ≥ 1) : (Leuc x)[x-1]! = List.foldl mult 1 (Leuc (x-1)) +1 := by
   induction' x with x ih
   · contradiction
   · simp
 
-theorem Euc_closed_form : (LEuc_x x)[x-1]! =((LEuc_x x)[x-2]!)^2 - (LEuc_x x)[x-2]! + 1  := by
+theorem Euc_closed_form : (Leuc x)[x-1]! =((Leuc x)[x-2]!)^2 - (Leuc x)[x-2]! + 1  := by
   sorry
 
 
@@ -117,11 +118,11 @@ def euc (n : ℕ) : ℕ :=
   decreasing_by simp; sorry
   --   refine Nat.lt_of_le_of_lt x (n-1) n
 
-#eval! euc 1
-#eval! euc 2
-#eval! euc 3
-#eval! euc 4
-#eval! euc 5
+#check! euc 1 = 2
+#check! euc 2 = 3
+#check! euc 3 = 7
+#check! euc 4 = 43
+#check! euc 5 = 1807
 
 theorem euc_closed (n : ℕ) (h: n ≥ 1) : euc n = (euc n-1)^2 - (euc n-1) + 1 := by
   induction' n with n ih
