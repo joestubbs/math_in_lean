@@ -1,6 +1,51 @@
 import Mathlib.Tactic
+import Mathlib.SetTheory.Ordinal.Arithmetic
+
 open BigOperators
 open Finset
+
+
+--  Function defining the nth Euclid number:
+def euclid : ℕ -> ℕ
+  | 0 => 1
+  | 1 => 2
+  | n+1 => (euclid n)^2 - (euclid n) + 1
+
+#eval euclid 4 = 43
+#eval ∏ x ∈ range 3, euclid (x+1) + 1 = 43
+
+-- Helper lemma needed for the Euclid identity
+theorem factor (n : ℕ) : n^2 - n = n*(n-1) := by
+  rw [Nat.pow_two]
+  exact Eq.symm (Nat.mul_sub_one n n)
+
+-- A basic identity about the Euclid numbers; this is the definition
+-- given in Knuth.
+theorem euc_id1 (n : ℕ) (h: n ≥ 1): euclid n = ∏ x ∈ range (n-1), euclid (x+1) + 1 := by
+  induction' n with n ih
+  · contradiction
+  · cases n
+    · rw [euclid]
+      simp
+    · rename_i n
+      simp
+      rw [euclid]
+      simp
+      rw [factor]
+      rw [Finset.prod_range_succ]
+      rw [mul_comm]
+      apply mul_eq_mul_right_iff.mpr
+      constructor
+      simp at ih
+      rw [ih]
+      simp
+      intro
+      contradiction
+
+
+
+-- Below is some scratch work experimenting with alternative ways of defining
+-- the Euclid numbers.
 
 -- Start with some list definitions
 open List
@@ -13,7 +58,7 @@ def LNat (x : ℕ) : (List ℕ) :=
   else if x = 1 then
     [1]
   else
-    List.append [x] (LNat (x-1))
+    List.append (LNat (x-1)) [x]
 
 #eval LNat 3
 
@@ -27,70 +72,50 @@ def mult (a b : ℕ) := a * b
 -- Define the euclid numbers function, returned as a list
 def Leuc (x : ℕ) : (List ℕ) :=
   if x = 0 then
-    []
+    [1]
   else if x = 1 then
-    [2]
+    [1, 2]
   else
     -- compute the product of all previous euclid numbers and add 1
     -- then append it to the list
     List.append (Leuc (x-1)) [List.foldl mult 1 (Leuc (x-1)) + 1]
 
 #eval Leuc 5
-#check Leuc 5 = [2, 3, 7, 43, 1807]
+#eval Leuc 5 = [1, 2, 3, 7, 43, 1807]
 
-#check (Leuc 4)[3]! = 43
-#check List.foldl mult 1 (Leuc 3) = 42
+#eval (Leuc 4)[4]! = 43
+#eval List.foldl mult 1 (Leuc 3) = 42
 
-#check (Leuc 5)[0]! = 2
+#eval (Leuc 5)[1]! = 2
 
-#check (Leuc 5)[4]! = 1807
+#eval (Leuc 5)[5]! = 1807
 
 
-theorem Euc_prod (x : ℕ) (h: x ≥ 1) : (Leuc x)[x-1]! = List.foldl mult 1 (Leuc (x-1)) +1 := by
+theorem Euc_prod (x : ℕ) (h: x ≥ 1) : (Leuc x)[x]! = List.foldl mult 1 (Leuc (x-1)) +1 := by
   induction' x with x ih
   · contradiction
   · simp
+    sorry
 
-theorem Euc_closed_form : (Leuc x)[x-1]! =((Leuc x)[x-2]!)^2 - (Leuc x)[x-2]! + 1  := by
+theorem Euc_closed_form : (Leuc x)[x]! =((Leuc x)[x-1]!)^2 - (Leuc x)[x-1]! + 1  := by
   sorry
 
 
+-- Explore defining the Euclid numbers using Finsets
 
-def fac : ℕ → ℕ
-  | 0 => 1
-  | n + 1 => (n + 1) * fac n
-
-theorem fac_pos (n : ℕ) : 0 < fac n := by
-  induction' n with n ih
-  · rw [fac]
-    exact zero_lt_one
-  rw [fac]
-  exact mul_pos n.succ_pos ih
-
-theorem dvd_fac {i n : ℕ} (ipos : 0 < i) (ile : i ≤ n) : i ∣ fac n := by
-  induction' n with n ih
-  · exact absurd ipos (not_lt_of_ge ile)
-  rw [fac]
-  rcases Nat.of_le_succ ile with h | h
-  · apply dvd_mul_of_dvd_right (ih h)
-  rw [h]
-  apply dvd_mul_right
-
-theorem sum_id (n : ℕ) : ∑ i in range (n + 1), i = n * (n + 1) / 2 := by
-  symm; apply Nat.div_eq_of_eq_mul_right (by norm_num : 0 < 2)
-  induction' n with n ih
-  · simp
-  rw [Finset.sum_range_succ, mul_add 2, ← ih]
-  ring
-
-
-
--- Some finset definitions
+-- First, some simple finset definitions
 variable {α : Type*} (s : Finset ℕ) (f : ℕ → ℕ) (n : ℕ)
 #check Finset.sum s f
 
 def S_3 : (Finset ℕ ) := { 1, 2, 3 }
 #eval S_3
+
+def S_2n (n : ℕ) : (Finset ℕ ) := Finset.image (fun n => 2*n) (Finset.range n)
+
+def S_n (n : ℕ) : (Finset ℕ ) := Finset.image (fun n => n+1) (Finset.range n)
+
+#eval S_n 5
+#eval S_2n 5
 
 
 -- The range function of Finset returns a finite set of naturals,
@@ -105,8 +130,11 @@ def S_3 : (Finset ℕ ) := { 1, 2, 3 }
 
 #eval Finset.range 1
 
+#eval ∏ x∈ Finset.range 0, (x+1) + 1
+
+
 -- A function that returns the nth Euclid number by creating
--- a product over a set.
+-- a product over a Finset.
 def euc (n : ℕ) : ℕ :=
   if n = 0 then
     1
@@ -115,19 +143,31 @@ def euc (n : ℕ) : ℕ :=
   else
       ∏ x ∈ range (n-1), (euc (x+1)) + 1
   termination_by n
-  decreasing_by simp; sorry
-  --   refine Nat.lt_of_le_of_lt x (n-1) n
+  decreasing_by sorry
 
-#check! euc 1 = 2
-#check! euc 2 = 3
-#check! euc 3 = 7
-#check! euc 4 = 43
-#check! euc 5 = 1807
+#eval! euc 1 = 2
+#eval! euc 2 = 3
+#eval! euc 3 = 7
+#eval! euc 4 = 43
+#eval! euc 5 = 1807
+
+
+-- A slight variant on the previous definition
+def euc2 : (n: ℕ) → ℕ
+  | 0 => 1
+  | 1 => 2
+  | n+1 => ∏ x ∈ range (n), (euc2 (x+1)) + 1
+  -- termination_by x => range n
+  decreasing_by sorry
+
+
+theorem range_lt (m x : ℕ) (h: x ∈ Finset.range m) : x < m := by sorry
 
 theorem euc_closed (n : ℕ) (h: n ≥ 1) : euc n = (euc n-1)^2 - (euc n-1) + 1 := by
   induction' n with n ih
   · contradiction
-  · cases n
-    · simp
-      have h1: euc 1 = 2 := by sorry;
-    · simp
+  sorry
+    -- cases n
+    -- · simp
+    --   have h1: euc 1 = 2 := by sorry;
+    -- · simp
