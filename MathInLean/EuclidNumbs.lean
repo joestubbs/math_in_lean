@@ -152,16 +152,23 @@ def euc (n : ℕ) : ℕ :=
 #eval! euc 5 = 1807
 
 
+theorem range_lt (m x : ℕ) (h: x ∈ Finset.range m) : x < m := by
+ exact List.mem_range.mp h
+
 -- A slight variant on the previous definition
-def euc2 : (n: ℕ) → ℕ
+def euc2 (n: ℕ) : ℕ :=
+  match n with
   | 0 => 1
   | 1 => 2
-  | n+1 => ∏ x ∈ range (n), (euc2 (x+1)) + 1
-  -- termination_by x => range n
-  decreasing_by sorry
+  | n+1 => ∏ x ∈ (Finset.range n).attach, (euc2 (x+1)) + 1
+  decreasing_by
+  simp
+  apply range_lt
+  obtain ⟨ _, p ⟩ := x
+  assumption
 
 
-theorem range_lt (m x : ℕ) (h: x ∈ Finset.range m) : x < m := by sorry
+
 
 theorem euc_closed (n : ℕ) (h: n ≥ 1) : euc n = (euc n-1)^2 - (euc n-1) + 1 := by
   induction' n with n ih
